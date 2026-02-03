@@ -3,106 +3,259 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Resultado Arcangelo</title>
+    <title>Relatório Arcangelo</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
+        :root {
+            --bg-color: #1c1c1e;
+            --card-bg: #2c2c2e;
+            --text-primary: #ffffff;
+            --text-secondary: #9e9e9e;
+            --accent: #34b7f1;
+            --danger: #ff453a;
+            --success: #30d158;
+            --warning: #ffd60a;
+        }
+
         body {
-            font-family: sans-serif;
-            background-color: var(--tg-theme-bg-color, #1c1c1e);
-            color: var(--tg-theme-text-color, #ffffff);
-            padding: 20px;
-            margin: 0;
-        }
-        .card {
-            background-color: var(--tg-theme-secondary-bg-color, #2c2c2e);
-            border-radius: 12px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--tg-theme-bg-color, var(--bg-color));
+            color: var(--tg-theme-text-color, var(--text-primary));
             padding: 15px;
-            margin-bottom: 15px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin: 0;
+            font-size: 14px;
         }
-        h2 { margin-top: 0; color: #34b7f1; }
-        .row { display: flex; justify-content: space-between; border-bottom: 1px solid #3a3a3c; padding: 8px 0; }
+
+        /* Header com Placa */
+        .header-placa {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .placa-badge {
+            background: #fff;
+            color: #000;
+            border: 2px solid #000;
+            border-top: 4px solid #003399; /* Azul Mercosul */
+            border-radius: 6px;
+            padding: 5px 15px;
+            font-size: 24px;
+            font-weight: 800;
+            display: inline-block;
+            font-family: 'Consolas', monospace;
+            letter-spacing: 2px;
+        }
+
+        /* Cartões */
+        .card {
+            background-color: var(--tg-theme-secondary-bg-color, var(--card-bg));
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        h2 {
+            margin: 0 0 12px 0;
+            font-size: 16px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--accent);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Linhas de Dados */
+        .row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
         .row:last-child { border-bottom: none; }
-        .label { opacity: 0.7; font-size: 0.9em; }
-        .value { font-weight: bold; }
+        
+        .label {
+            color: var(--text-secondary);
+            font-size: 0.9em;
+            flex: 1;
+        }
+        
+        .value {
+            font-weight: 500;
+            text-align: right;
+            flex: 1.5;
+            word-break: break-word;
+        }
+
+        /* Destaques Especiais */
+        .alert-red { color: var(--danger); font-weight: bold; }
+        .alert-green { color: var(--success); font-weight: bold; }
+        
+        /* Botão Fechar */
         .btn-fechar {
-            background-color: #34b7f1;
-            color: white;
+            background-color: var(--tg-theme-button-color, var(--accent));
+            color: var(--tg-theme-button-text-color, #ffffff);
             border: none;
             width: 100%;
-            padding: 15px;
-            border-radius: 10px;
+            padding: 16px;
+            border-radius: 12px;
             font-size: 16px;
-            font-weight: bold;
+            font-weight: 700;
             cursor: pointer;
-            margin-top: 20px;
+            margin-top: 10px;
+            transition: opacity 0.2s;
         }
+        .btn-fechar:active { opacity: 0.8; }
+
+        /* Loading */
+        #loading { text-align: center; padding: 40px; color: var(--text-secondary); }
     </style>
 </head>
 <body>
 
-    <div id="content">
-        </div>
+    <div id="loading">Carregando dados...</div>
+    <div id="content" style="display: none;"></div>
 
-    <button class="btn-fechar" onclick="Telegram.WebApp.close()">Fechar Consulta</button>
+    <button class="btn-fechar" onclick="Telegram.WebApp.close()">Fechar Relatório</button>
 
     <script>
-        // Configura o WebApp para expandir
         Telegram.WebApp.ready();
         Telegram.WebApp.expand();
 
-        // Pega os dados da URL (?dados=JSON_BASE64)
+        // 1. Lógica de Captura e Decodificação
         const params = new URLSearchParams(window.location.search);
         const rawData = params.get('dados');
 
         if (rawData) {
             try {
-                // Decodifica o Base64 e converte para JSON
+                // Decodifica Base64 -> JSON string -> Objeto JS
                 const jsonStr = decodeURIComponent(escape(atob(rawData)));
                 const dados = JSON.parse(jsonStr);
-                
-                montarRelatorio(dados);
+                renderizar(dados);
             } catch (e) {
-                document.getElementById('content').innerHTML = "<p>Erro ao ler dados.</p>";
+                document.getElementById('loading').innerHTML = `❌ Erro ao ler dados: ${e.message}`;
             }
         } else {
-            document.getElementById('content').innerHTML = "<p>Nenhum dado recebido.</p>";
+            document.getElementById('loading').innerHTML = "❌ Nenhum dado recebido.";
         }
 
-        function montarRelatorio(d) {
-            // Função para criar linhas da tabela
-            const row = (label, val) => `
+        // 2. Funções Auxiliares de Formatação
+        function fmtVal(val) {
+            if (val === null || val === undefined || val === "") return null;
+            if (val === true) return '<span class="alert-red">SIM</span>'; // Alerta para true (ex: roubo)
+            if (val === false) return 'NÃO';
+            return val;
+        }
+
+        function fmtDate(dateStr) {
+            if (!dateStr || dateStr.length < 10) return null;
+            // Pega só YYYY-MM-DD e inverte
+            const [ano, mes, dia] = dateStr.substring(0, 10).split('-');
+            return `${dia}/${mes}/${ano}`;
+        }
+
+        function fmtDoc(doc) {
+            if (!doc) return null;
+            if (doc.length === 11) return doc.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
+            if (doc.length === 14) return doc.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, "$1.$2.$3/$4-$5");
+            return doc;
+        }
+
+        // 3. Função Construtora de Linhas (ignora nulos)
+        function row(label, value, isDate = false, isDoc = false) {
+            let finalValue = value;
+            if (isDate) finalValue = fmtDate(value);
+            else if (isDoc) finalValue = fmtDoc(value);
+            else finalValue = fmtVal(value);
+
+            if (finalValue === null) return ''; // Não renderiza linha vazia
+
+            return `
                 <div class="row">
                     <span class="label">${label}</span>
-                    <span class="value">${val || '---'}</span>
+                    <span class="value">${finalValue}</span>
                 </div>`;
+        }
 
+        // 4. Renderização Principal
+        function renderizar(d) {
             const html = `
-                <div class="card">
-                    <h2>🚘 Veículo</h2>
-                    ${row('Placa', d.placa)}
-                    ${row('Modelo', d.descricaoMarcaModelo)}
-                    ${row('Ano', d.anoFabricacao + '/' + d.anoModelo)}
-                    ${row('Cor', d.descricaoCor)}
-                    ${row('Município', d.descricaoMunicipioEmplacamento + '-' + d.ufJurisdicao)}
+                <div class="header-placa">
+                    <div class="placa-badge">${d.placa || 'SEM PLACA'}</div>
+                    <div style="margin-top: 5px; opacity: 0.7;">${d.descricaoMarcaModelo || ''}</div>
                 </div>
 
                 <div class="card">
-                    <h2>⚖️ Situação</h2>
+                    <h2>🚗 Identificação</h2>
+                    ${row('Renavam', d.codigoRenavam)}
                     ${row('Chassi', d.chassi)}
                     ${row('Motor', d.numeroMotor)}
-                    ${row('Restrições', d.descricaoRestricao1 || 'Nada Consta')}
-                    ${row('Roubo/Furto', d.indicadorRouboFurto)}
+                    ${row('Marca/Modelo', d.descricaoMarcaModelo)}
+                    ${row('Ano Fab/Mod', (d.anoFabricacao || '?') + '/' + (d.anoModelo || '?'))}
+                    ${row('Cor', d.descricaoCor)}
+                    ${row('Combustível', d.descricaoCombustivel)}
+                    ${row('Situação', d.situacao, false, false).replace('EM_CIRCULACAO', '<span class="alert-green">EM CIRCULAÇÃO</span>')}
                 </div>
-                
+
+                <div class="card">
+                    <h2>📄 Documentação</h2>
+                    ${row('Licenciamento Pago', d.anoExercicioLicenciamentoPago)}
+                    ${row('Emissão CRLV', d.dataEmissaoCRLV, true)}
+                    ${row('Emissão CRV', d.dataEmissaoCrv, true)}
+                    ${row('Município', d.descricaoMunicipioEmplacamento + ' - ' + d.ufJurisdicao)}
+                </div>
+
                 <div class="card">
                     <h2>👤 Proprietário</h2>
                     ${row('Nome', d.nomeProprietario)}
-                    ${row('Documento', d.numeroIdentificacaoProprietario)}
+                    ${row('Documento', d.numeroIdentificacaoProprietario, false, true)}
+                    ${row('Tipo', d.descricaoTipoProprietario)}
                 </div>
+
+                <div class="card">
+                    <h2>⚠️ Restrições e Alertas</h2>
+                    ${row('Roubo/Furto', d.indicadorRouboFurto)}
+                    ${row('Restrição Judicial (Renajud)', d.indicadorRestricaoRenajud)}
+                    ${row('Restrição 1', d.descricaoRestricao1)}
+                    ${row('Restrição 2', d.descricaoRestricao2)}
+                    ${row('Restrição 3', d.descricaoRestricao3)}
+                    ${row('Restrição 4', d.descricaoRestricao4)}
+                    ${row('Comunicação Venda', d.indicadorComunicacaoVenda)}
+                    ${row('Multas Renainf', d.indicadorMultaRenainf)}
+                    ${row('Leilão', d.indicadorLeilao)}
+                    ${row('Restrição RFB', d.descricaoRestricaoRfb)}
+                </div>
+
+                <div class="card">
+                    <h2>⚙️ Ficha Técnica</h2>
+                    ${row('Tipo Veículo', d.descricaoTipoVeiculo)}
+                    ${row('Espécie', d.descricaoEspecieVeiculo)}
+                    ${row('Carroceria', d.descricaoTipoCarroceria)}
+                    ${row('Categoria', d.descricaoCategoria)}
+                    ${row('Potência', d.potencia + ' cv')}
+                    ${row('Cilindradas', d.cilindradas + ' cc')}
+                    ${row('CMT', d.cmt)}
+                    ${row('PBT', d.pbt)}
+                    ${row('Eixos', d.qtdEixos)}
+                    ${row('Lotação', d.lotacao)}
+                </div>
+
+                ${d.procedencia !== 'NACIONAL' ? `
+                <div class="card">
+                    <h2>🚢 Importação</h2>
+                    ${row('Procedência', d.procedencia)}
+                    ${row('DI', d.numeroDeclaracaoImportacao)}
+                    ${row('Data Importação', d.dataDistImportacao, true)}
+                    ${row('Órgão RFB', d.codigoOrgaoRfb)}
+                </div>` : ''}
             `;
-            
+
             document.getElementById('content').innerHTML = html;
+            document.getElementById('content').style.display = 'block';
+            document.getElementById('loading').style.display = 'none';
         }
     </script>
 </body>
