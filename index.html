@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resultado Arcangelo</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body {
+            font-family: sans-serif;
+            background-color: var(--tg-theme-bg-color, #1c1c1e);
+            color: var(--tg-theme-text-color, #ffffff);
+            padding: 20px;
+            margin: 0;
+        }
+        .card {
+            background-color: var(--tg-theme-secondary-bg-color, #2c2c2e);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h2 { margin-top: 0; color: #34b7f1; }
+        .row { display: flex; justify-content: space-between; border-bottom: 1px solid #3a3a3c; padding: 8px 0; }
+        .row:last-child { border-bottom: none; }
+        .label { opacity: 0.7; font-size: 0.9em; }
+        .value { font-weight: bold; }
+        .btn-fechar {
+            background-color: #34b7f1;
+            color: white;
+            border: none;
+            width: 100%;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="content">
+        </div>
+
+    <button class="btn-fechar" onclick="Telegram.WebApp.close()">Fechar Consulta</button>
+
+    <script>
+        // Configura o WebApp para expandir
+        Telegram.WebApp.ready();
+        Telegram.WebApp.expand();
+
+        // Pega os dados da URL (?dados=JSON_BASE64)
+        const params = new URLSearchParams(window.location.search);
+        const rawData = params.get('dados');
+
+        if (rawData) {
+            try {
+                // Decodifica o Base64 e converte para JSON
+                const jsonStr = decodeURIComponent(escape(atob(rawData)));
+                const dados = JSON.parse(jsonStr);
+                
+                montarRelatorio(dados);
+            } catch (e) {
+                document.getElementById('content').innerHTML = "<p>Erro ao ler dados.</p>";
+            }
+        } else {
+            document.getElementById('content').innerHTML = "<p>Nenhum dado recebido.</p>";
+        }
+
+        function montarRelatorio(d) {
+            // Função para criar linhas da tabela
+            const row = (label, val) => `
+                <div class="row">
+                    <span class="label">${label}</span>
+                    <span class="value">${val || '---'}</span>
+                </div>`;
+
+            const html = `
+                <div class="card">
+                    <h2>🚘 Veículo</h2>
+                    ${row('Placa', d.placa)}
+                    ${row('Modelo', d.descricaoMarcaModelo)}
+                    ${row('Ano', d.anoFabricacao + '/' + d.anoModelo)}
+                    ${row('Cor', d.descricaoCor)}
+                    ${row('Município', d.descricaoMunicipioEmplacamento + '-' + d.ufJurisdicao)}
+                </div>
+
+                <div class="card">
+                    <h2>⚖️ Situação</h2>
+                    ${row('Chassi', d.chassi)}
+                    ${row('Motor', d.numeroMotor)}
+                    ${row('Restrições', d.descricaoRestricao1 || 'Nada Consta')}
+                    ${row('Roubo/Furto', d.indicadorRouboFurto)}
+                </div>
+                
+                <div class="card">
+                    <h2>👤 Proprietário</h2>
+                    ${row('Nome', d.nomeProprietario)}
+                    ${row('Documento', d.numeroIdentificacaoProprietario)}
+                </div>
+            `;
+            
+            document.getElementById('content').innerHTML = html;
+        }
+    </script>
+</body>
+</html>
