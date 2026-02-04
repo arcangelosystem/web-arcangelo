@@ -26,24 +26,6 @@
             font-size: 14px;
         }
 
-        /* --- NOVO: BADGE DE LIMITE --- */
-        .limit-badge {
-            background-color: rgba(52, 183, 241, 0.15); /* Fundo azul transparente */
-            border: 1px solid var(--accent);
-            color: var(--accent);
-            border-radius: 50px; /* Redondo estilo pílula */
-            padding: 8px 20px;
-            margin-bottom: 20px;
-            text-align: center;
-            font-size: 14px;
-            font-weight: 600;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-        }
-
         /* Header com Placa */
         .header-placa {
             text-align: center;
@@ -53,7 +35,7 @@
             background: #fff;
             color: #000;
             border: 2px solid #000;
-            border-top: 4px solid #003399;
+            border-top: 4px solid #003399; /* Azul Mercosul */
             border-radius: 6px;
             padding: 5px 15px;
             font-size: 24px;
@@ -143,11 +125,13 @@
         Telegram.WebApp.ready();
         Telegram.WebApp.expand();
 
+        // 1. Lógica de Captura e Decodificação
         const params = new URLSearchParams(window.location.search);
         const rawData = params.get('dados');
 
         if (rawData) {
             try {
+                // Decodifica Base64 -> JSON string -> Objeto JS
                 const jsonStr = decodeURIComponent(escape(atob(rawData)));
                 const dados = JSON.parse(jsonStr);
                 renderizar(dados);
@@ -158,16 +142,17 @@
             document.getElementById('loading').innerHTML = "❌ Nenhum dado recebido.";
         }
 
-        // Funções de formatação
+        // 2. Funções Auxiliares de Formatação
         function fmtVal(val) {
             if (val === null || val === undefined || val === "") return null;
-            if (val === true) return '<span class="alert-red">SIM</span>';
+            if (val === true) return '<span class="alert-red">SIM</span>'; // Alerta para true (ex: roubo)
             if (val === false) return 'NÃO';
             return val;
         }
 
         function fmtDate(dateStr) {
             if (!dateStr || dateStr.length < 10) return null;
+            // Pega só YYYY-MM-DD e inverte
             const [ano, mes, dia] = dateStr.substring(0, 10).split('-');
             return `${dia}/${mes}/${ano}`;
         }
@@ -179,13 +164,14 @@
             return doc;
         }
 
+        // 3. Função Construtora de Linhas (ignora nulos)
         function row(label, value, isDate = false, isDoc = false) {
             let finalValue = value;
             if (isDate) finalValue = fmtDate(value);
             else if (isDoc) finalValue = fmtDoc(value);
             else finalValue = fmtVal(value);
 
-            if (finalValue === null) return '';
+            if (finalValue === null) return ''; // Não renderiza linha vazia
 
             return `
                 <div class="row">
@@ -194,16 +180,9 @@
                 </div>`;
         }
 
+        // 4. Renderização Principal
         function renderizar(d) {
-            // --- NOVO: CRIA O BADGE SE TIVER LIMITE ---
-            // Se o limite_restante veio no JSON, cria o HTML do badge. Se não, fica vazio.
-            const badgeLimite = (d.limite_restante !== undefined) 
-                ? `<div class="limit-badge">📊 Consultas Hoje: ${d.limite_restante}/${d.limite_total || 15}</div>` 
-                : '';
-
             const html = `
-                ${badgeLimite}
-
                 <div class="header-placa">
                     <div class="placa-badge">${d.placa || 'SEM PLACA'}</div>
                     <div style="margin-top: 5px; opacity: 0.7;">${d.descricaoMarcaModelo || ''}</div>
@@ -239,7 +218,7 @@
                 <div class="card">
                     <h2>⚠️ Restrições e Alertas</h2>
                     ${row('Roubo/Furto', d.indicadorRouboFurto)}
-                    ${row('Restrição Judicial', d.indicadorRestricaoRenajud)}
+                    ${row('Restrição Judicial (Renajud)', d.indicadorRestricaoRenajud)}
                     ${row('Restrição 1', d.descricaoRestricao1)}
                     ${row('Restrição 2', d.descricaoRestricao2)}
                     ${row('Restrição 3', d.descricaoRestricao3)}
